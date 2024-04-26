@@ -1,7 +1,7 @@
 ﻿<#
     MIT License
 
-    Copyright (C) 2023 Robin Stolpe.
+    Copyright (C) 2024 Robin Stolpe.
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -33,28 +33,28 @@
 @{
 
     # Script module or binary module file associated with this manifest.
-    RootModule = '.\WinSoftwareUpdate.psm1'
+    RootModule        = '.\WinSoftwareUpdate.psm1'
 
     # Version number of this module.
-    ModuleVersion = '0.1.5'
+    ModuleVersion     = '1.0.0'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
 
     # ID used to uniquely identify this module
-    GUID = '4699dd6a-cc61-4929-97ed-11de5eb6bc01'
+    GUID              = '4699dd6a-cc61-4929-97ed-11de5eb6bc01'
 
     # Author of this module
-    Author = 'Robin Stolpe'
+    Author            = 'Robin Stolpe'
 
     # Company or vendor of this module
-    CompanyName = 'Stolpe.io'
+    CompanyName       = 'Stolpe.io'
 
     # Copyright statement for this module
-    Copyright = '(c) 2023 Robin Stolpe. All rights reserved.'
+    Copyright         = '(c) 2024 Robin Stolpe. All rights reserved.'
 
     # Description of the functionality provided by this module
-    Description = 'This module will help you to update your software on your Windows 10 and Windows 11 machines.'
+    Description       = 'This module will help you to update your software on your Windows 10 and Windows 11 machines.'
 
     # Minimum version of the PowerShell engine required by this module
     PowerShellVersion = '5.1'
@@ -72,7 +72,7 @@
     # ClrVersion = ''
 
     # Processor architecture (None, X86, Amd64) required by this module
-    ProcessorArchitecture = ''
+    #ProcessorArchitecture = ''
 
     # Modules that must be imported into the global environment prior to importing this module
     # RequiredModules = @()
@@ -93,10 +93,10 @@
     # NestedModules = @()
 
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-    FunctionsToExport = "Update-RSWinSoftware", "Confirm-RSWinGet", "Get-RSInstallInfo", "Install-RSVCLib", "Start-RSWinGet"
+    FunctionsToExport = "Get-rsPowerShell7", "Update-RSWinSoftware", "Confirm-RSDependency", "Confirm-RSWinGet", "Get-RSSystemInfo"
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-    CmdletsToExport = @()
+    CmdletsToExport   = @()
 
     # Variables to export from this module
     VariablesToExport = '*'
@@ -119,22 +119,22 @@
         PSData = @{
 
             # Tags applied to this module. These help with module discovery in online galleries.
-            Tags = @("windows", "maintenance", "autoupdate", "autoupdate-script", "psmodule", "update", "winget", "windows10", "windows11")
+            Tags                     = @("windows", "maintenance", "autoupdate", "autoupdate-script", "psmodule", "update", "winget", "windows10", "windows11")
 
             # A URL to the license for this module.
-            LicenseUri = 'https://github.com/rstolpe/WinSoftwareUpdate/blob/main/LICENSE'
+            LicenseUri               = 'https://github.com/rstolpe/WinSoftwareUpdate/blob/main/LICENSE'
 
             # A URL to the main website for this project.
-            ProjectUri = 'https://github.com/rstolpe/WinSoftwareUpdate'
+            ProjectUri               = 'https://github.com/rstolpe/WinSoftwareUpdate'
 
             # A URL to an icon representing this module.
             # IconUri = ''
 
             # ReleaseNotes of this module
-            ReleaseNotes = 'https://github.com/rstolpe/WinSoftwareUpdate/releases'
+            ReleaseNotes             = 'https://github.com/rstolpe/WinSoftwareUpdate/releases'
 
             # Prerelease string of this module
-            Prerelease = ''
+            Prerelease               = 'beta'
 
             # Flag to indicate whether the module requires explicit user acceptance for install/update/save
             RequireLicenseAcceptance = $false

@@ -12,7 +12,8 @@ I have added the result from PSScriptAnalyzer in [test folder](https://github.co
 - Check what platform your currently running and adapt the downloads for that, if your running x86, amd64, arm64.
 - Make sure that you have WinGet installed and up to date, if it's not the module will install / update it for you to the latest version.
 - Make sure that you have Microsoft.VCLibs installed, if not the module will install it for you.
-- Update your softwares with WinGet
+- If your running this module with PowerShell 7 this module will check if PowerShell 7 have any newer versions, and if it's any newer version it will download and update PowerShell 7
+- Update all your softwares with WinGet
 
 # Links
 * [My PowerShell Collection](https://github.com/rstolpe/PSCollection)
@@ -37,7 +38,7 @@ Install-Module -Name WinSoftwareUpdate -Scope AllUsers -Force
 ```
 
 # Update-RSWinSoftware
-Verifies WinGet and Microsoft.VCLibs is installed and up to date, then updates your software with WinGet.
+Run the complete update
 ````
 Update-RSWinSoftware
 ````
