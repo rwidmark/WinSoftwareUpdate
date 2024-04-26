@@ -79,7 +79,7 @@ Function Confirm-rsWinGet {
         [System.Object]$GithubInfoRestData = Invoke-RestMethod -Uri $WinGetUrl -Method Get -Headers $GithubHeaders -TimeoutSec 10 -HttpVersion $SysInfo.HTTPVersion | Select-Object -Property assets, tag_name
 
         [System.Object]$GitHubInfo = [PSCustomObject]@{
-            Tag         = $($GithubInfoRestData.tag_name.Substring(1))
+            Tag         = $($GithubInfoRestData.tag_name.Substring(1)) -as [version]
             DownloadUrl = $GithubInfoRestData.assets | where-object { $_.name -like "*.msixbundle" } | Select-Object -ExpandProperty browser_download_url
             OutFile     = "$($env:TEMP)\WinGet_$($GithubInfoRestData.tag_name.Substring(1)).msixbundle"
         }
@@ -90,20 +90,20 @@ Function Confirm-rsWinGet {
     }
 
     # Checking if the installed version of WinGet are the same as the latest version of WinGet
-    [version]$vWinGet = [string]$SysInfo.Software.WinGet
-    [version]$vGitHub = [string]$GitHubInfo.Tag
+    [version]$vWinGet = $SysInfo.Software.WinGet
+    [version]$vGitHub = $GitHubInfo.Tag
     if ([Version]$vWinGet -lt [Version]$vGitHub) {
-        Write-Output "WinGet has a newer version $($vGitHub), downloading and installing it..."
+        Write-Output "WinGet has a newer version $($vGitHub | Out-String), downloading and installing it..."
         Write-Verbose "Downloading WinGet..."
         Invoke-WebRequest -UseBasicParsing -Uri $GitHubInfo.DownloadUrl -OutFile $GitHubInfo.OutFile
 
-        Write-Verbose "Installing version $($vGitHub) of WinGet..."
-        Add-AppxPackage $($GitHubInfo.OutFile)
+        Write-Verbose "Installing version $($vGitHub | Out-String) of WinGet..."
+        Add-AppxPackage $($GitHubInfo.OutFile) -ForceApplicationShutdown
         Write-Verbose "Deleting WinGet downloaded installation file..."
         Remove-Item $($GitHubInfo.OutFile) -Force
     }
     else {
-        Write-Verbose "Your already on the latest version of WinGet $($vWinGet), no need to update."
+        Write-Verbose "Your already on the latest version of WinGet $($vWinGet | Out-String), no need to update."
         Continue
     }
 }
@@ -163,18 +163,18 @@ Function Get-rsSystemInfo {
         $SysInfo = [ordered]@{
             Software    = [ordered]@{
                 "Microsoft.VCLibs"  = [ordered]@{
-                    Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.VCLibs.140.00_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" })
+                    Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.VCLibs.140.00_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" }) -as [version]
                     Url      = "https://aka.ms/Microsoft.VCLibs.$($Arch).14.00.Desktop.appx"
                     FileName = "Microsoft.VCLibs.$($Arch).14.00.Desktop.appx"
                 }
                 "Microsoft.UI.Xaml" = [ordered]@{
-                    Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.UI.Xaml.2.8_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" })
+                    Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.UI.Xaml.2.8_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" }) -as [version]
                     Url      = "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.$($Arch).appx"
                     FileName = "Microsoft.UI.Xaml.2.8.$($Arch).appx"
                 }
                 "WinGet"            = [ordered]@{
-                    Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" })
-                    Url      = "https://aka.ms/getwinget"
+                    Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" }) -as [version]
+                    Url      = ""
                     FileName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
                 }
                 "vsRedist"          = [ordered]@{
@@ -361,11 +361,11 @@ Function Update-rsWinSoftware {
 
     # Checking if it's any softwares to update and if so it will update them
     Write-Output "Updating Wingets source list..."
-    WinGet.exe source update
+    Start-Process -FilePath "WinGet.exe" -ArgumentList "source update" -Verb RunAS -NoNewWindow -Wait
 
     Write-OutPut "Checks if any softwares needs to be updated..."
     try {
-        WinGet.exe upgrade --all --accept-package-agreements --accept-source-agreements --silent --include-unknown --uninstall-previous
+        Start-Process -FilePath "WinGet.exe" -ArgumentList "upgrade --all --accept-package-agreements --accept-source-agreements --silent --include-unknown --uninstall-previous" -Verb RunAS -NoNewWindow -Wait
     }
     catch {
         Write-Error "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
