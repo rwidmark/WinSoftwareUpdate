@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 #>
 
-Function Confirm-RSWinGet {
+Function Confirm-rsWinGet {
     <#
         .SYNOPSIS
         This function is connected and used of the main function for this module, Update-RSWinSoftware.
@@ -195,9 +195,9 @@ Function Get-rsSystemInfo {
         return $SysInfo
     }
 }
-Function Confirm-RSDependency {
+Function Confirm-rsDependency {
     # Collecting systeminformation
-    $SysInfo = Get-RSSystemInfo
+    $SysInfo = Get-rsSystemInfo
 
     # If any dependencies are missing it will install them
     foreach ($_info in $SysInfo.Software.keys) {
@@ -313,7 +313,7 @@ Function Confirm-rsPowerShell7 {
         Remove-Item -Path $PackagePath -Force -ErrorAction SilentlyContinue
     }
 }
-Function Update-RSWinSoftware {
+Function Update-rsWinSoftware {
     <#
         .SYNOPSIS
         This module let users auto update their installed software on Windows 10, 11 with WinGet.
