@@ -177,9 +177,12 @@ Function Get-rsSystemInfo {
                     Url      = "https://aka.ms/getwinget"
                     FileName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
                 }
+                "vsRedist"          = [ordered]@{
+                    Version  = ""
+                    Url      = "https://aka.ms/vs/17/release/vc_redist.$($Architecture).exe"
+                    FileName = "vc_redist.$($Architecture).exe"
+                }
             }
-            #VersionVisualCRedist = ""
-            #UrlVisualCRedist     = "https://aka.ms/vs/17/release/vc_redist.$($Arch).exe"
             Arch        = $Arch
             VersionPS   = [version]$CurrentPSVersion
             Temp        = $env:TEMP
@@ -197,15 +200,15 @@ Function Confirm-RSDependency {
     $SysInfo = Get-RSSystemInfo
 
     # If any dependencies are missing it will install them
-    foreach ($_info in $SysInfo.Dep.keys) {
+    foreach ($_info in $SysInfo.Software.keys) {
         if ($_info -notlike "WinGet") {
-            $DepInfo = $SysInfo.Dep.$_info
-            if ($null -eq $DepInfo.version -or $DepInfo.version -eq "0.0.0.0") {
+            $Software = $SysInfo.Software.$_info
+            if ($null -eq $Software.version -or $Software.version -eq "0.0.0.0") {
                 try {
                     Write-Output "$($_info) is not installed, downloading and installing it now..."
-                    [string]$DepOutFile = Join-Path -Path $SysInfo.Temp -ChildPath $DepInfo.FileName
+                    [string]$DepOutFile = Join-Path -Path $SysInfo.Temp -ChildPath $Software.FileName
                     Write-Verbose "Downloading $($_info)..."
-                    Invoke-RestMethod -Uri $DepInfo.url -OutFile $DepOutFile -HttpVersion $SysInfo.HTTPVersion
+                    Invoke-RestMethod -Uri $Software.url -OutFile $DepOutFile -HttpVersion $SysInfo.HTTPVersion
 
                     Write-Verbose "Installing $($_info)..."
                     Add-AppxPackage -Path $DepOutFile
