@@ -81,7 +81,7 @@ Function Confirm-RSWinGet {
         [System.Object]$GitHubInfo = [PSCustomObject]@{
             Tag         = $($GithubInfoRestData.tag_name.Substring(1))
             DownloadUrl = $GithubInfoRestData.assets | where-object { $_.name -like "*.msixbundle" } | Select-Object -ExpandProperty browser_download_url
-            OutFile     = "$env:TEMP\WinGet_$($GithubInfoRestData.tag_name.Substring(1)).msixbundle"
+            OutFile     = "$($env:TEMP)\WinGet_$($GithubInfoRestData.tag_name.Substring(1)).msixbundle"
         }
     }
     catch {
@@ -352,7 +352,7 @@ Function Update-RSWinSoftware {
 
     # Register WinGet
     Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe
-    
+
     # Check if something needs to be installed or updated
     Confirm-RSDependency
 
