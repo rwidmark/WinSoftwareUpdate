@@ -172,7 +172,7 @@ Function Get-rsSystemInfo {
                     Url      = "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.$($Arch).appx"
                     FileName = "Microsoft.UI.Xaml.2.8.$($Arch).appx"
                 }
-                WinGet              = [ordered]@{
+                "WinGet"            = [ordered]@{
                     Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" })
                     Url      = "https://aka.ms/getwinget"
                     FileName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
