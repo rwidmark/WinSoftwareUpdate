@@ -73,7 +73,7 @@ Function Confirm-rsWinGet {
         "X-GitHub-Api-Version" = "2022-11-28"
     }
 
-    # Collecting information from GitHub regarding latest version of WinGet
+    # Collecting information from GitHub regarding latest version of WinGet.
     try {
         # If the computer is running PowerShell 7 or higher, use HTTP/3.0 for the GitHub API in other cases use HTTP/2.0
         [System.Object]$GithubInfoRestData = Invoke-RestMethod -Uri $WinGetUrl -Method Get -Headers $GithubHeaders -TimeoutSec 10 -HttpVersion $SysInfo.HTTPVersion | Select-Object -Property assets, tag_name
