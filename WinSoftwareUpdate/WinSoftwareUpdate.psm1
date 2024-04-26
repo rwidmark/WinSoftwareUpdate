@@ -145,10 +145,10 @@ Function Get-rsSystemInfo {
     else {
         # Verify verifying what ps version that's running and checks if pwsh7 is installed
         [version]$CurrentPSVersion = if ($PSVersionTable.PSVersion.Major -lt 7) {
-            $VerifyPWSHInstallPath = Test-Path -Path "C:\Program Files\PowerShell\7\pwsh.exe"
+            $pwshPath = Join-Path -Path "C:\Program Files" -ChildPath "PowerShell\7" -AdditionalChildPath "pwsh.exe"
 
-            if ($VerifyPWSHInstallPath -eq $true) {
-                (Get-Command "C:\Program Files\PowerShell\7\pwsh.exe").Version
+            if ($pwshPath -eq $true) {
+                (Get-Command "$($pwshPath)").Version
             }
             else {
                 $PSVersionTable.PSVersion
@@ -346,24 +346,23 @@ Function Update-RSWinSoftware {
     # Importing appx with -usewindowspowershell if your using PowerShell 7 or higher
     if ($PSVersionTable.PSVersion.Major -ge 7) {
         Import-Module appx -UseWindowsPowershell
-        Write-Output "This messages is expected if you are using PowerShell 7 or higher`n"
+        Write-Output "This messages is expected if you are using PowerShell 7 or higher and can be ignored`n"
     }
 
     # Check if something needs to be installed or updated
     Confirm-RSDependency
 
     # Checking if it's any softwares to update and if so it will update them
-    Write-Output "Updating Winget's source list..."
+    Write-Output "Updating Wingets source list..."
     WinGet.exe source update
 
-    Write-OutPut "Checks if any softwares needs to be updated...`n"
+    Write-OutPut "Checks if any softwares needs to be updated..."
     try {
-        WinGet.exe upgrade --all --silent --accept-source-agreements --accept-package-agreements --include-unknown --uninstall-previous
-        Write-Output "Everything is now completed, you can close this window"
+        WinGet.exe upgrade --all --accept-package-agreements --accept-source-agreements --silent --include-unknown --uninstall-previous
     }
     catch {
         Write-Error "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
     }
 
-    Write-OutPut "`n=== \\\ Script Finished /// ===`n"
+    Write-OutPut "FINISH - All of your programs have been updated!"
 }
