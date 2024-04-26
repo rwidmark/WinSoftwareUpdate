@@ -354,7 +354,7 @@ Function Update-rsWinSoftware {
     }
 
     # Register WinGet
-    Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe
+    Add-AppxPackage -RegisterByFamilyName -MainPackage "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe"
 
     # Check if something needs to be installed or updated
     Confirm-RSDependency
