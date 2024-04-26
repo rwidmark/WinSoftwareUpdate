@@ -173,8 +173,9 @@ Function Get-rsSystemInfo {
                     FileName = "Microsoft.UI.Xaml.2.8.$($Arch).appx"
                 }
                 WinGet              = [ordered]@{
-                    Version = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" })
-                    Url     = ""
+                    Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" })
+                    Url      = "https://aka.ms/getwinget"
+                    FileName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
                 }
             }
             #VersionVisualCRedist = ""
@@ -349,6 +350,9 @@ Function Update-RSWinSoftware {
         Write-Output "This messages is expected if you are using PowerShell 7 or higher and can be ignored`n"
     }
 
+    # Register WinGet
+    Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe
+    
     # Check if something needs to be installed or updated
     Confirm-RSDependency
 
