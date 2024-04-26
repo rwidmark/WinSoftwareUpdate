@@ -79,7 +79,7 @@ Function Confirm-rsWinGet {
         [System.Object]$GithubInfoRestData = Invoke-RestMethod -Uri $WinGetUrl -Method Get -Headers $GithubHeaders -TimeoutSec 10 -HttpVersion $SysInfo.HTTPVersion | Select-Object -Property assets, tag_name
 
         [System.Object]$GitHubInfo = [PSCustomObject]@{
-            Tag         = $($GithubInfoRestData.tag_name.Substring(1)) -as [version]
+            Tag         = $($GithubInfoRestData.tag_name.Substring(1))
             DownloadUrl = $GithubInfoRestData.assets | where-object { $_.name -like "*.msixbundle" } | Select-Object -ExpandProperty browser_download_url
             OutFile     = "$($env:TEMP)\WinGet_$($GithubInfoRestData.tag_name.Substring(1)).msixbundle"
         }
@@ -361,11 +361,20 @@ Function Update-rsWinSoftware {
 
     # Checking if it's any softwares to update and if so it will update them
     Write-Output "Updating Wingets source list..."
-    Start-Process -FilePath "WinGet.exe" -ArgumentList "source update" -Verb RunAS -NoNewWindow -Wait
+    Start-Process -FilePath "WinGet.exe" -ArgumentList "source update" -NoNewWindow -Wait
 
     Write-OutPut "Checks if any softwares needs to be updated..."
     try {
-        Start-Process -FilePath "WinGet.exe" -ArgumentList "upgrade --all --accept-package-agreements --accept-source-agreements --silent --include-unknown --uninstall-previous" -Verb RunAS -NoNewWindow -Wait
+        $Arguments = @()
+        $Arguments += "upgrade"
+        $Arguments += "--all"
+        $Arguments += "--include-unknown"
+        $Arguments += "--accept-package-agreements"
+        $Arguments += "--accept-source-agreements"
+        $Arguments += "--uninstall-previous"
+        $Arguments += "--silent"
+
+        Start-Process -FilePath "WinGet.exe" -ArgumentList $Arguments -NoNewWindow -Wait
     }
     catch {
         Write-Error "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
