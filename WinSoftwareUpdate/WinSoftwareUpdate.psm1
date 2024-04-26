@@ -90,7 +90,7 @@ Function Confirm-rsWinGet {
     }
 
     # Checking if the installed version of WinGet are the same as the latest version of WinGet
-    [version]$vWinGet = [string]$SysInfo.WinGet
+    [version]$vWinGet = [string]$SysInfo.Software.WinGet
     [version]$vGitHub = [string]$GitHubInfo.Tag
     if ([Version]$vWinGet -lt [Version]$vGitHub) {
         Write-Output "WinGet has a newer version $($vGitHub), downloading and installing it..."
@@ -354,7 +354,7 @@ Function Update-rsWinSoftware {
     }
 
     # Register WinGet
-    Add-AppxPackage -RegisterByFamilyName -MainPackage "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe"
+    # Add-AppxPackage -RegisterByFamilyName -MainPackage "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe"
 
     # Check if something needs to be installed or updated
     Confirm-RSDependency
