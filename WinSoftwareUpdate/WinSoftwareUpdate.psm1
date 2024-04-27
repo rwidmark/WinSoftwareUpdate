@@ -85,7 +85,7 @@ Function Confirm-rsWinGet {
         }
     }
     catch {
-        Write-Error "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+        Throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
         break
     }
 
@@ -98,9 +98,10 @@ Function Confirm-rsWinGet {
         Invoke-WebRequest -UseBasicParsing -Uri $GitHubInfo.DownloadUrl -OutFile $GitHubInfo.OutFile
 
         Write-Verbose "Installing version $($vGitHub | Out-String) of WinGet..."
-        Add-AppxPackage $($GitHubInfo.OutFile) -ForceApplicationShutdown
+        [void](Add-AppxPackage $($GitHubInfo.OutFile) -ForceApplicationShutdown)
+        
         Write-Verbose "Deleting WinGet downloaded installation file..."
-        Remove-Item $($GitHubInfo.OutFile) -Force
+        [void](Remove-Item -Path $($GitHubInfo.OutFile) -Force)
     }
     else {
         Write-Verbose "Your already on the latest version of WinGet $($vWinGet | Out-String), no need to update."
@@ -211,12 +212,13 @@ Function Confirm-rsDependency {
                     Invoke-RestMethod -Uri $Software.url -OutFile $DepOutFile -HttpVersion $SysInfo.HTTPVersion
 
                     Write-Verbose "Installing $($_info)..."
-                    Add-AppxPackage -Path $DepOutFile
+                    [void](Add-AppxPackage -Path $DepOutFile)
+                    
                     Write-Verbose "Deleting $($_info) downloaded installation file..."
-                    Remove-Item $DepOutFile -Force
+                    [void](Remove-Item -Path $DepOutFile -Force)
                 }
                 catch {
-                    Write-Error "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+                    Throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
                     break
                 }
             }
@@ -377,7 +379,7 @@ Function Update-rsWinSoftware {
         Start-Process -FilePath "WinGet.exe" -ArgumentList $Arguments -NoNewWindow -Wait
     }
     catch {
-        Write-Error "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+        Throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
     }
 
     Write-OutPut "FINISH - All of your programs have been updated!"
