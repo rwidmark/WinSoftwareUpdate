@@ -140,8 +140,8 @@ Function Get-rsSystemInfo {
     }
 
     if ($Arch -eq "Unsupported") {
-        throw "Your running a unsupported architecture, exiting now..."
-        break
+        Throw "Your running a unsupported architecture, exiting now..."
+        Break
     }
     else {
         # Verify verifying what ps version that's running and checks if pwsh7 is installed
