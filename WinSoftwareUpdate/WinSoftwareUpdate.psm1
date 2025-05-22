@@ -1,8 +1,8 @@
 ﻿<#
 MIT License
 
-Copyright (C) 2024 Robin Stolpe.
-<https://stolpe.io>
+Copyright (C) 2025 Robin Widmark.
+<https://widmark.dev>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,15 +43,17 @@ Function Confirm-rsWinGet {
 
 
         .LINK
-        https://github.com/rstolpe/WinSoftwareUpdate/blob/main/README.md
+        https://github.com/rwidmark/WinSoftwareUpdate/blob/main/README.md
 
         .NOTES
-        Author:         Robin Stolpe
-        Mail:           robin@stolpe.io
-        Twitter:        https://twitter.com/rstolpes
-        Linkedin:       https://www.linkedin.com/in/rstolpe/
-        GitHub:         https://github.com/rstolpe
-        PSGallery:      https://www.powershellgallery.com/profiles/rstolpe
+        Author:         Robin Widmark
+        Mail:           robin@widmark.dev
+        Website/Blog:   https://widmark.dev
+        X:              https://x.com/widmark_robin
+        Mastodon:       https://mastodon.social/@rwidmark
+		YouTube:		https://www.youtube.com/@rwidmark
+        Linkedin:       https://www.linkedin.com/in/rwidmark/
+        GitHub:         https://github.com/rwidmark
     #>
 
     [CmdletBinding()]
@@ -85,7 +87,7 @@ Function Confirm-rsWinGet {
         }
     }
     catch {
-        Write-Error "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+        Throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
         break
     }
 
@@ -98,9 +100,10 @@ Function Confirm-rsWinGet {
         Invoke-WebRequest -UseBasicParsing -Uri $GitHubInfo.DownloadUrl -OutFile $GitHubInfo.OutFile
 
         Write-Verbose "Installing version $($vGitHub | Out-String) of WinGet..."
-        Add-AppxPackage $($GitHubInfo.OutFile) -ForceApplicationShutdown
+        [void](Add-AppxPackage $($GitHubInfo.OutFile) -ForceApplicationShutdown)
+        
         Write-Verbose "Deleting WinGet downloaded installation file..."
-        Remove-Item $($GitHubInfo.OutFile) -Force
+        [void](Remove-Item -Path $($GitHubInfo.OutFile) -Force)
     }
     else {
         Write-Verbose "Your already on the latest version of WinGet $($vWinGet | Out-String), no need to update."
@@ -117,15 +120,17 @@ Function Get-rsSystemInfo {
         This function will collect the following data from the computer and store it in a PSCustomObject to make it easier for the main function for this module, Update-RSWinSoftware, to use the data.
 
         .LINK
-        https://github.com/rstolpe/WinSoftwareUpdate/blob/main/README.md
+        https://github.com/rwidmark/WinSoftwareUpdate/blob/main/README.md
 
         .NOTES
-        Author:         Robin Stolpe
-        Mail:           robin@stolpe.io
-        Twitter:        https://twitter.com/rstolpes
-        Linkedin:       https://www.linkedin.com/in/rstolpe/
-        GitHub:         https://github.com/rstolpe
-        PSGallery:      https://www.powershellgallery.com/profiles/rstolpe
+        Author:         Robin Widmark
+        Mail:           robin@widmark.dev
+        Website/Blog:   https://widmark.dev
+        X:              https://x.com/widmark_robin
+        Mastodon:       https://mastodon.social/@rwidmark
+		YouTube:		https://www.youtube.com/@rwidmark
+        Linkedin:       https://www.linkedin.com/in/rwidmark/
+        GitHub:         https://github.com/rwidmark
     #>
 
     # Getting architecture of the computer and adapting it after the right download links
@@ -139,8 +144,8 @@ Function Get-rsSystemInfo {
     }
 
     if ($Arch -eq "Unsupported") {
-        throw "Your running a unsupported architecture, exiting now..."
-        break
+        Throw "Your running a unsupported architecture, exiting now..."
+        Break
     }
     else {
         # Verify verifying what ps version that's running and checks if pwsh7 is installed
@@ -211,12 +216,13 @@ Function Confirm-rsDependency {
                     Invoke-RestMethod -Uri $Software.url -OutFile $DepOutFile -HttpVersion $SysInfo.HTTPVersion
 
                     Write-Verbose "Installing $($_info)..."
-                    Add-AppxPackage -Path $DepOutFile
+                    [void](Add-AppxPackage -Path $DepOutFile)
+                    
                     Write-Verbose "Deleting $($_info) downloaded installation file..."
-                    Remove-Item $DepOutFile -Force
+                    [void](Remove-Item -Path $DepOutFile -Force)
                 }
                 catch {
-                    Write-Error "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+                    Throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
                     break
                 }
             }
@@ -329,16 +335,17 @@ Function Update-rsWinSoftware {
         # This command will run the module and check if WinGet and VCLibs are up to date.
 
         .LINK
-        https://github.com/rstolpe/WinSoftwareUpdate/blob/main/README.md
+        https://github.com/rwidmark/WinSoftwareUpdate/blob/main/README.md
 
         .NOTES
-        Author:         Robin Stolpe
-        Mail:           robin@stolpe.io
-        Website:        https://stolpe.io
-        Twitter:        https://twitter.com/rstolpes
-        Linkedin:       https://www.linkedin.com/in/rstolpe/
-        GitHub:         https://github.com/rstolpe
-        PSGallery:      https://www.powershellgallery.com/profiles/rstolpe
+        Author:         Robin Widmark
+        Mail:           robin@widmark.dev
+        Website/Blog:   https://widmark.dev
+        X:              https://x.com/widmark_robin
+        Mastodon:       https://mastodon.social/@rwidmark
+		YouTube:		https://www.youtube.com/@rwidmark
+        Linkedin:       https://www.linkedin.com/in/rwidmark/
+        GitHub:         https://github.com/rwidmark
     #>
 
     #Check if script was started as Administrator
@@ -377,7 +384,7 @@ Function Update-rsWinSoftware {
         Start-Process -FilePath "WinGet.exe" -ArgumentList $Arguments -NoNewWindow -Wait
     }
     catch {
-        Write-Error "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+        Throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
     }
 
     Write-OutPut "FINISH - All of your programs have been updated!"
