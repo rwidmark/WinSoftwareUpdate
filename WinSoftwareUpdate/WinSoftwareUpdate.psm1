@@ -145,15 +145,15 @@ Function Confirm-rsWinGet {
             throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
         }
 
-        [version]$vWinGet = $SysInfo.Software.WinGet.Version
-        [version]$vGitHub = $GitHubInfo.Tag
-        if ($vWinGet -lt $vGitHub) {
+        [version]$WinGetVersion = $SysInfo.Software.WinGet.Version
+        [version]$GitHubVersion = $GitHubInfo.Tag
+        if ($WinGetVersion -lt $GitHubVersion) {
             try {
-                Write-Output "WinGet has a newer version $vGitHub, downloading and installing it..."
+                Write-Output "WinGet has a newer version $GitHubVersion, downloading and installing it..."
                 Write-Verbose "Downloading WinGet..."
                 Invoke-WebRequest -UseBasicParsing -Uri $GitHubInfo.DownloadUrl -OutFile $GitHubInfo.OutFile -ErrorAction Stop
 
-                Write-Verbose "Installing version $vGitHub of WinGet..."
+                Write-Verbose "Installing version $GitHubVersion of WinGet..."
                 Add-AppxPackage -Path $GitHubInfo.OutFile -ForceApplicationShutdown -ErrorAction Stop | Out-Null
             }
             catch {
@@ -167,7 +167,7 @@ Function Confirm-rsWinGet {
             }
         }
         else {
-            Write-Verbose "You're already on the latest version of WinGet $vWinGet, no need to update."
+            Write-Verbose "You're already on the latest version of WinGet $WinGetVersion, no need to update."
         }
     }
 
@@ -225,7 +225,7 @@ Function Get-rsSystemInfo {
         }
 
         if ($Arch -eq "Unsupported") {
-            throw "Your running a unsupported architecture, exiting now..."
+            throw "You're running an unsupported architecture, exiting now..."
         }
 
         try {
@@ -320,8 +320,8 @@ Function Confirm-rsDependency {
             }
         }
 
-        [version]$pwsh7 = "7.0.0.0"
-        if ($SysInfo.VersionPS -ge $pwsh7) {
+        [version]$MinimumPwsh7Version = "7.0.0.0"
+        if ($SysInfo.VersionPS -ge $MinimumPwsh7Version) {
             Confirm-rsPowerShell7 -SysInfo $SysInfo
         }
 
@@ -348,7 +348,7 @@ Function Confirm-rsPowerShell7 {
 
     begin {
         $MissingPWSH7 = $false
-        [version]$pwshV7 = "7.0.0.0"
+        [version]$MinimumPwsh7Version = "7.0.0.0"
         [string]$PwshPath = Join-Path -Path "C:\Program Files" -ChildPath "PowerShell\7" -AdditionalChildPath "pwsh.exe"
     }
 
@@ -375,7 +375,7 @@ Function Confirm-rsPowerShell7 {
             if ($null -ne $SysInfo -and -not [string]::IsNullOrWhiteSpace([string]$SysInfo.HTTPVersion)) {
                 $MetadataParameters.HttpVersion = $SysInfo.HTTPVersion
             }
-            elseif ($CurrentVersion -ge $pwshV7) {
+            elseif ($CurrentVersion -ge $MinimumPwsh7Version) {
                 $MetadataParameters.HttpVersion = "3.0"
             }
 
@@ -391,7 +391,7 @@ Function Confirm-rsPowerShell7 {
         $downloadURL = "https://github.com/PowerShell/PowerShell/releases/download/v${Release}/${PackageName}"
         $ArgumentList = @("/i", $PackagePath, "/quiet")
 
-        if ($CurrentVersion -lt $pwshV7) {
+        if ($CurrentVersion -lt $MinimumPwsh7Version) {
             $ArgumentList += "ADD_EXPLORER_CONTEXT_MENU_OPENPOWERSHELL=1"
             $ArgumentList += "ENABLE_PSREMOTING=1"
             $ArgumentList += "ADD_FILE_CONTEXT_MENU_RUNPOWERSHELL=1"
@@ -486,7 +486,7 @@ Function Update-rsWinSoftware {
         try {
             if ($PSVersionTable.PSVersion.Major -ge 7) {
                 Import-Module Appx -UseWindowsPowershell -ErrorAction Stop
-                Write-Output "This messages is expected if you are using PowerShell 7 or higher and can be ignored`n"
+                Write-Output "This message is expected if you are using PowerShell 7 or higher and can be ignored`n"
             }
 
             Confirm-RSDependency
@@ -497,7 +497,7 @@ Function Update-rsWinSoftware {
                 throw "WinGet source update failed with exit code $($SourceUpdateProcess.ExitCode)."
             }
 
-            Write-Output "Checks if any softwares needs to be updated..."
+            Write-Output "Checking if any software needs to be updated..."
             $UpgradeProcess = Start-Process -FilePath "WinGet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru -ErrorAction Stop
             if ($UpgradeProcess.ExitCode -ne 0) {
                 throw "WinGet upgrade failed with exit code $($UpgradeProcess.ExitCode)."
