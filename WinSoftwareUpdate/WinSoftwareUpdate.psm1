@@ -252,7 +252,7 @@ function Get-rsSystemInfo {
         }
         $sysInfo.Software['PowerShell'] = [ordered]@{
             Version  = [version]$currentPwshVersion
-            FileName = "PowerShell-$($currentPwshVersion)-win-$($platform.Architecture).msi"
+            FileName = "PowerShell-latest-win-$($platform.Architecture).msi"
         }
         $sysInfo.VersionPS = [version]$currentPwshVersion
     }
@@ -399,9 +399,9 @@ function Confirm-rsPowerShell7 {
     }
 
     if ($SysInfo.IsWindows) {
-        $powerShellMsiName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Arch).msi"
-        $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $powerShellMsiName
-        $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$powerShellMsiName"
+        $msiFileName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Arch).msi"
+        $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $msiFileName
+        $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$msiFileName"
         $argumentList = @('/i', $packagePath, '/quiet')
 
         if ($currentVersion -lt [version]'7.0.0') {
@@ -586,7 +586,7 @@ function Update-rsWinSoftware {
         }
 
         if ($PSCmdlet.ShouldProcess('Installed software', 'Upgrade software with Homebrew')) {
-            # --greedy updates auto-updating casks as well to match the Windows all-software intent.
+            # The --greedy flag also upgrades casks that normally skip updates because they can auto-update themselves.
             Invoke-rsNativeCommand -FilePath $brewPath -ArgumentList @('upgrade', '--greedy') -OperationName 'brew upgrade'
         }
 
