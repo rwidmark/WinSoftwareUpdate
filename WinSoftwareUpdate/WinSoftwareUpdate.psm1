@@ -399,9 +399,9 @@ function Confirm-rsPowerShell7 {
     }
 
     if ($SysInfo.IsWindows) {
-        $packageName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Arch).msi"
-        $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $packageName
-        $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$packageName"
+        $powerShellMsiName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Arch).msi"
+        $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $powerShellMsiName
+        $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$powerShellMsiName"
         $argumentList = @('/i', $packagePath, '/quiet')
 
         if ($currentVersion -lt [version]'7.0.0') {
@@ -441,7 +441,8 @@ function Confirm-rsPowerShell7 {
             return
         }
 
-        $formulaInstalled = (& $brewPath list --formula powershell 2>$null | Measure-Object).Count -gt 0
+        & $brewPath list --formula powershell 1>$null 2>$null
+        $formulaInstalled = $LASTEXITCODE -eq 0
         if (-not $formulaInstalled) {
             Write-Verbose 'Skipping PowerShell update because the Homebrew powershell formula is not installed.'
             return
@@ -496,10 +497,10 @@ function Confirm-rsDependency {
         }
 
         if ($SysInfo.VersionPS -ge [version]'7.0.0') {
-            Confirm-rsPowerShell7 -SysInfo $SysInfo -WhatIf:$WhatIfPreference -Verbose:$($VerbosePreference -eq [System.Management.Automation.ActionPreference]::Continue)
+            Confirm-rsPowerShell7 -SysInfo $SysInfo -WhatIf:$WhatIfPreference
         }
 
-        Confirm-rsWinGet -SysInfo $SysInfo -WhatIf:$WhatIfPreference -Verbose:$($VerbosePreference -eq [System.Management.Automation.ActionPreference]::Continue)
+        Confirm-rsWinGet -SysInfo $SysInfo -WhatIf:$WhatIfPreference
         return
     }
 
@@ -509,7 +510,7 @@ function Confirm-rsDependency {
         }
 
         Write-Verbose 'Homebrew is available on macOS.'
-        Confirm-rsPowerShell7 -SysInfo $SysInfo -WhatIf:$WhatIfPreference -Verbose:$($VerbosePreference -eq [System.Management.Automation.ActionPreference]::Continue)
+        Confirm-rsPowerShell7 -SysInfo $SysInfo -WhatIf:$WhatIfPreference
     }
 }
 
@@ -548,7 +549,7 @@ function Update-rsWinSoftware {
             throw 'Update-RSWinSoftware requires administrator rights on Windows.'
         }
 
-        Confirm-rsDependency -SysInfo $sysInfo -WhatIf:$WhatIfPreference -Verbose:$($VerbosePreference -eq [System.Management.Automation.ActionPreference]::Continue)
+        Confirm-rsDependency -SysInfo $sysInfo -WhatIf:$WhatIfPreference
 
         $wingetPath = Get-rsCommandPath -CommandName 'winget'
         if ([string]::IsNullOrWhiteSpace($wingetPath)) {
@@ -577,7 +578,7 @@ function Update-rsWinSoftware {
 
     if ($platform.IsMacOS) {
         $sysInfo = Get-rsSystemInfo
-        Confirm-rsDependency -SysInfo $sysInfo -WhatIf:$WhatIfPreference -Verbose:$($VerbosePreference -eq [System.Management.Automation.ActionPreference]::Continue)
+        Confirm-rsDependency -SysInfo $sysInfo -WhatIf:$WhatIfPreference
         $brewPath = $sysInfo.Software['Homebrew'].Path
 
         if ($PSCmdlet.ShouldProcess('Homebrew metadata', 'Refresh Homebrew formula and cask metadata')) {
