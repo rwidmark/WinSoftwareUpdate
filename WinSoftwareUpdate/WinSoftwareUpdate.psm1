@@ -146,7 +146,13 @@ Function Confirm-rsWinGet {
             throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
         }
 
-        [version]$WinGetVersion = $SysInfo.Software["WinGet"].Version
+        $WinGetInfo = $SysInfo.Software["WinGet"]
+        [version]$WinGetVersion = if ($null -ne $WinGetInfo -and $null -ne $WinGetInfo.Version) {
+            $WinGetInfo.Version
+        }
+        else {
+            "0.0.0.0"
+        }
         [version]$GitHubVersion = $GitHubInfo.Tag
         if ($WinGetVersion -lt $GitHubVersion) {
             try {
@@ -404,7 +410,7 @@ Function Confirm-rsPowerShell7 {
             try {
                 Invoke-RestMethod -Uri $downloadURL -OutFile $PackagePath -ErrorAction Stop
                 $InstallProcess = Start-Process -FilePath "msiexec.exe" -ArgumentList $ArgumentList -Wait -PassThru -ErrorAction Stop
-                if ($InstallProcess.ExitCode -ne 0) {
+                if ($InstallProcess.exitcode -ne 0) {
                     throw "Quiet install failed, please ensure you have administrator rights"
                 }
 
@@ -494,14 +500,14 @@ Function Update-rsWinSoftware {
 
             Write-Output "Updating Wingets source list..."
             $SourceUpdateProcess = Start-Process -FilePath "WinGet.exe" -ArgumentList "source update" -NoNewWindow -Wait -PassThru -ErrorAction Stop
-            if ($SourceUpdateProcess.ExitCode -ne 0) {
-                throw "WinGet source update failed with exit code $($SourceUpdateProcess.ExitCode)."
+            if ($SourceUpdateProcess.exitcode -ne 0) {
+                throw "WinGet source update failed with exit code $($SourceUpdateProcess.exitcode)."
             }
 
             Write-Output "Checking if any software needs to be updated..."
             $UpgradeProcess = Start-Process -FilePath "WinGet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru -ErrorAction Stop
-            if ($UpgradeProcess.ExitCode -ne 0) {
-                throw "WinGet upgrade failed with exit code $($UpgradeProcess.ExitCode)."
+            if ($UpgradeProcess.exitcode -ne 0) {
+                throw "WinGet upgrade failed with exit code $($UpgradeProcess.exitcode)."
             }
         }
         catch {
