@@ -310,7 +310,17 @@ Function Confirm-rsDependency {
                 try {
                     Write-Output "$DependencyName is not installed, downloading and installing it now..."
                     Write-Verbose "Downloading $DependencyName..."
-                    Invoke-RestMethod -Uri $Software.Url -OutFile $DepOutFile -HttpVersion $SysInfo.HTTPVersion -ErrorAction Stop
+                    $DependencyDownloadParameters = @{
+                        Uri         = $Software.Url
+                        OutFile     = $DepOutFile
+                        ErrorAction = "Stop"
+                    }
+
+                    if (-not [string]::IsNullOrWhiteSpace([string]$SysInfo.HTTPVersion)) {
+                        $DependencyDownloadParameters.HttpVersion = $SysInfo.HTTPVersion
+                    }
+
+                    Invoke-RestMethod @DependencyDownloadParameters
 
                     Write-Verbose "Installing $DependencyName..."
                     Add-AppxPackage -Path $DepOutFile -ErrorAction Stop | Out-Null
@@ -492,7 +502,7 @@ Function Update-rsWinSoftware {
 
         try {
             if ($PSVersionTable.PSVersion.Major -ge 7) {
-                Import-Module Appx -UseWindowsPowershell -ErrorAction Stop
+                Import-Module Appx -UseWindowsPowerShell -ErrorAction Stop
                 Write-Output "This message is expected if you are using PowerShell 7 or higher and can be ignored`n"
             }
 
