@@ -1,53 +1,78 @@
 ![GitHub](https://img.shields.io/github/license/rwidmark/WinSoftwareUpdate?style=plastic)  
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rwidmark/WinSoftwareUpdate?sort=semver&style=plastic)  ![Last release](https://img.shields.io/github/release-date/rwidmark/WinSoftwareUpdate?style=plastic)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rwidmark/WinSoftwareUpdate?sort=semver&style=plastic) ![Last release](https://img.shields.io/github/release-date/rwidmark/WinSoftwareUpdate?style=plastic)  
 ![GitHub last commit](https://img.shields.io/github/last-commit/rwidmark/WinSoftwareUpdate?style=plastic)  
 ![PSGallery downloads](https://img.shields.io/powershellgallery/dt/WinSoftwareUpdate?style=plastic)
-  
+
 # WinSoftwareUpdate
-This module will let you update your installed software with WinGet, many of them but not all. The complete list is published here: [WinGet Repo](https://github.com/microsoft/winget-cli)  
-This module is perfect for people like me that are to lazy to update every singel software all the time, it's much easier to just run a PowerShell Script.  
-I have added the result from PSScriptAnalyzer in [test folder](https://github.com/rwidmark/WinSoftwareUpdate/tree/main/test) I have some ShouldProcess warnings in this module but that's nothing to worry about really.
 
-## This module can do the following
-- Check what platform your currently running and adapt the downloads for that, if your running x86, amd64, arm64.
-- Make sure that you have WinGet installed and up to date, if it's not the module will install / update it for you to the latest version.
-- Make sure that you have Microsoft.VCLibs installed, if not the module will install it for you.
-- If your running this module with PowerShell 7 this module will check if PowerShell 7 have any newer versions, and if it's any newer version it will download and update PowerShell 7
-- Update all your softwares with WinGet
+WinSoftwareUpdate updates supported software on:
 
-# Links
-* [My PowerShell Collection](https://github.com/rwidmark/PSCollection)
-* [Webpage/Blog](https://widmark.dev)
-* [X](https://twitter.com/widmark_robin)
-* [Mastodon](https://mastodon.social/@rwidmark)
-* [YouTube](https://www.youtube.com/@rwidmark)
-* [LinkedIn](https://www.linkedin.com/in/rwidmark/)
-* [GitHub](https://github.com/rwidmark)
+- **Windows** by validating required Appx dependencies, keeping WinGet current, and running `winget upgrade --all`
+- **macOS** by using Homebrew to refresh metadata and upgrade installed formulae and casks
 
-# Help
-Below I have specified things that I think will help people with this module.  
-You can also see the API for each function in the [help folder](https://github.com/rwidmark/WinSoftwareUpdate/tree/main/help)
+The module now supports `-Verbose`, `-WhatIf`, and `-Confirm` on all mutating commands.
+
+## Requirements
+
+### Windows
+- Windows 10 or Windows 11
+- Administrator privileges when running `Update-RSWinSoftware`
+
+### macOS
+- Homebrew installed and available on `PATH`
 
 ## Install
-Install for current user
-```
+
+Install for the current user:
+
+```powershell
 Install-Module -Name WinSoftwareUpdate -Scope CurrentUser -Force
 ```
-  
-Install for all users
-```
+
+Install for all users:
+
+```powershell
 Install-Module -Name WinSoftwareUpdate -Scope AllUsers -Force
 ```
 
-# Update-RSWinSoftware
-Run the complete update
-````
+## Usage
+
+Run the full update flow on the current platform:
+
+```powershell
 Update-RSWinSoftware
-````
-  
-Only checks if your softwares are up to date with WinGet. This will not verify if WinGet or Microsoft.VCLibs is up to date.
-````
-Update-RSWinSoftware -SkipVersionCheck
-````
+```
 
+Preview the work without making changes:
 
+```powershell
+Update-RSWinSoftware -WhatIf -Verbose
+```
+
+Inspect the cached platform information used by the module:
+
+```powershell
+Get-rsSystemInfo
+```
+
+## Exported commands
+
+- `Update-RSWinSoftware`
+- `Get-rsSystemInfo`
+- `Confirm-rsDependency`
+- `Confirm-rsPowerShell7`
+- `Confirm-rsWinGet`
+
+## Help
+
+Command help is stored in the [`Help`](./Help) directory.
+
+## Links
+
+- [My PowerShell Collection](https://github.com/rwidmark/PSCollection)
+- [Webpage/Blog](https://widmark.dev)
+- [X](https://twitter.com/widmark_robin)
+- [Mastodon](https://mastodon.social/@rwidmark)
+- [YouTube](https://www.youtube.com/@rwidmark)
+- [LinkedIn](https://www.linkedin.com/in/rwidmark/)
+- [GitHub](https://github.com/rwidmark)
