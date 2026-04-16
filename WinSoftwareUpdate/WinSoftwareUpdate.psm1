@@ -25,6 +25,7 @@ SOFTWARE.
 
 function Get-rsPlatformInfo {
     [CmdletBinding()]
+    [OutputType([pscustomobject])]
     param()
 
     $platformName = if ($IsWindows) {
@@ -65,6 +66,7 @@ function Get-rsPlatformInfo {
 
 function Get-rsCommandPath {
     [CmdletBinding()]
+    [OutputType([string])]
     param(
         [Parameter(Mandatory = $true, HelpMessage = 'Specify the command name to resolve on the current platform.')]
         [ValidateNotNullOrEmpty()]
@@ -131,6 +133,7 @@ function Invoke-rsDownloadFile {
 
 function Get-rsLatestAppxPackageVersion {
     [CmdletBinding()]
+    [OutputType([version])]
     param(
         [Parameter(Mandatory = $true, HelpMessage = 'Specify the Appx package collection to inspect.')]
         [ValidateNotNull()]
@@ -160,6 +163,7 @@ function Get-rsLatestAppxPackageVersion {
             }
         }
         catch {
+            Write-Verbose "Skipping package '$PackageFamilyName' because its version could not be parsed."
         }
     }
 
@@ -168,6 +172,7 @@ function Get-rsLatestAppxPackageVersion {
 
 function Get-rsPowerShellReleaseVersion {
     [CmdletBinding()]
+    [OutputType([version])]
     param(
         [Parameter(HelpMessage = 'Specify precomputed system information to reuse HTTP settings.')]
         [ValidateNotNull()]
@@ -201,6 +206,7 @@ function Get-rsSystemInfo {
     #>
 
     [CmdletBinding()]
+    [OutputType([pscustomobject])]
     param()
 
     $platform = Get-rsPlatformInfo
