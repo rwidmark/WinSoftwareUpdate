@@ -23,6 +23,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 #>
 
+Function Get-rsLatestAppxPackageVersion {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [System.Collections.IEnumerable]$Packages,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Architecture,
+
+        [Parameter(Mandatory = $true)]
+        [string]$PackageFamilyName
+    )
+
+    try {
+        $Version = $Packages |
+            Where-Object { $_.Architecture -eq $Architecture -and $_.PackageFamilyName -eq $PackageFamilyName } |
+            Sort-Object -Property Version -Descending |
+            Select-Object -ExpandProperty Version -First 1
+
+        if ($null -ne $Version) {
+            return [version]$Version
+        }
+    }
+    catch {
+        return [version]"0.0.0.0"
+    }
+
+    return [version]"0.0.0.0"
+}
 Function Confirm-rsWinGet {
     <#
         .SYNOPSIS
@@ -95,18 +124,18 @@ Function Confirm-rsWinGet {
     [version]$vWinGet = $SysInfo.Software.WinGet
     [version]$vGitHub = $GitHubInfo.Tag
     if ([Version]$vWinGet -lt [Version]$vGitHub) {
-        Write-Output "WinGet has a newer version $($vGitHub | Out-String), downloading and installing it..."
+        Write-Output "WinGet has a newer version $vGitHub, downloading and installing it..."
         Write-Verbose "Downloading WinGet..."
         Invoke-WebRequest -UseBasicParsing -Uri $GitHubInfo.DownloadUrl -OutFile $GitHubInfo.OutFile
 
-        Write-Verbose "Installing version $($vGitHub | Out-String) of WinGet..."
+        Write-Verbose "Installing version $vGitHub of WinGet..."
         [void](Add-AppxPackage $($GitHubInfo.OutFile) -ForceApplicationShutdown)
         
         Write-Verbose "Deleting WinGet downloaded installation file..."
         [void](Remove-Item -Path $($GitHubInfo.OutFile) -Force)
     }
     else {
-        Write-Verbose "Your already on the latest version of WinGet $($vWinGet | Out-String), no need to update."
+        Write-Verbose "You're already on the latest version of WinGet $vWinGet, no need to update."
         Continue
     }
 }
@@ -152,7 +181,7 @@ Function Get-rsSystemInfo {
         [version]$CurrentPSVersion = if ($PSVersionTable.PSVersion.Major -lt 7) {
             $pwshPath = Join-Path -Path "C:\Program Files" -ChildPath "PowerShell\7" -AdditionalChildPath "pwsh.exe"
 
-            if ($pwshPath -eq $true) {
+            if (Test-Path -Path $pwshPath) {
                 (Get-Command "$($pwshPath)").Version
             }
             else {
@@ -163,22 +192,24 @@ Function Get-rsSystemInfo {
             $PSVersionTable.PSVersion
         }
 
+        $AppxPackages = Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch }
+
         # Collects everything in pscustomobject to get easier access to the information
         # Need to redothis to hashtable
         $SysInfo = [ordered]@{
             Software    = [ordered]@{
                 "Microsoft.VCLibs"  = [ordered]@{
-                    Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.VCLibs.140.00_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" }) -as [version]
+                    Version  = Get-rsLatestAppxPackageVersion -Packages $AppxPackages -Architecture $Arch -PackageFamilyName "Microsoft.VCLibs.140.00_8wekyb3d8bbwe"
                     Url      = "https://aka.ms/Microsoft.VCLibs.$($Arch).14.00.Desktop.appx"
                     FileName = "Microsoft.VCLibs.$($Arch).14.00.Desktop.appx"
                 }
                 "Microsoft.UI.Xaml" = [ordered]@{
-                    Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.UI.Xaml.2.8_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" }) -as [version]
+                    Version  = Get-rsLatestAppxPackageVersion -Packages $AppxPackages -Architecture $Arch -PackageFamilyName "Microsoft.UI.Xaml.2.8_8wekyb3d8bbwe"
                     Url      = "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.$($Arch).appx"
                     FileName = "Microsoft.UI.Xaml.2.8.$($Arch).appx"
                 }
                 "WinGet"            = [ordered]@{
-                    Version  = $(try { (Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch -and $_.PackageFamilyName -like "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe" } | Sort-Object { $_.Version -as [version] } -Descending | Select-Object Version -First 1).version } catch { "0.0.0.0" }) -as [version]
+                    Version  = Get-rsLatestAppxPackageVersion -Packages $AppxPackages -Architecture $Arch -PackageFamilyName "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe"
                     Url      = ""
                     FileName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
                 }
