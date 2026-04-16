@@ -47,6 +47,7 @@ Function Get-rsLatestAppxPackageVersion {
         }
     }
     catch {
+        return [version]"0.0.0.0"
     }
 
     return [version]"0.0.0.0"
