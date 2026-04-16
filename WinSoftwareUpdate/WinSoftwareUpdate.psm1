@@ -36,21 +36,30 @@ Function Get-rsLatestAppxPackageVersion {
         [string]$PackageFamilyName
     )
 
-    try {
-        $Version = $Packages |
-            Where-Object { $_.Architecture -eq $Architecture -and $_.PackageFamilyName -eq $PackageFamilyName } |
-            Sort-Object -Property Version -Descending |
-            Select-Object -ExpandProperty Version -First 1
+    begin {
+        [version]$DefaultVersion = "0.0.0.0"
+    }
 
-        if ($null -ne $Version) {
+    process {
+        try {
+            $Version = $Packages |
+                Where-Object { $_.Architecture -eq $Architecture -and $_.PackageFamilyName -eq $PackageFamilyName } |
+                Sort-Object -Property Version -Descending |
+                Select-Object -ExpandProperty Version -First 1
+
+            if ($null -eq $Version -or [string]::IsNullOrWhiteSpace([string]$Version)) {
+                return $DefaultVersion
+            }
+
             return [version]$Version
         }
-    }
-    catch {
-        return [version]"0.0.0.0"
+        catch {
+            return $DefaultVersion
+        }
     }
 
-    return [version]"0.0.0.0"
+    end {
+    }
 }
 Function Confirm-rsWinGet {
     <#
@@ -91,52 +100,78 @@ Function Confirm-rsWinGet {
         $SysInfo
     )
 
-    # =================================
-    #         Static Variables
-    # =================================
-    #
-    # GitHub url for the latest release of WinGet
-    [string]$WinGetUrl = "https://api.github.com/repos/microsoft/winget-cli/releases/latest"
-    #
-    # The headers and API version for the GitHub API
-    [hashtable]$GithubHeaders = @{
-        "Accept"               = "application/vnd.github.v3+json"
-        "X-GitHub-Api-Version" = "2022-11-28"
-    }
+    begin {
+        [string]$WinGetUrl = "https://api.github.com/repos/microsoft/winget-cli/releases/latest"
+        [hashtable]$GithubHeaders = @{
+            "Accept"               = "application/vnd.github.v3+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+        }
 
-    # Collecting information from GitHub regarding latest version of WinGet.
-    try {
-        # If the computer is running PowerShell 7 or higher, use HTTP/3.0 for the GitHub API in other cases use HTTP/2.0
-        [System.Object]$GithubInfoRestData = Invoke-RestMethod -Uri $WinGetUrl -Method Get -Headers $GithubHeaders -TimeoutSec 10 -HttpVersion $SysInfo.HTTPVersion | Select-Object -Property assets, tag_name
-
-        [System.Object]$GitHubInfo = [PSCustomObject]@{
-            Tag         = $($GithubInfoRestData.tag_name.Substring(1))
-            DownloadUrl = $GithubInfoRestData.assets | where-object { $_.name -like "*.msixbundle" } | Select-Object -ExpandProperty browser_download_url
-            OutFile     = "$($env:TEMP)\WinGet_$($GithubInfoRestData.tag_name.Substring(1)).msixbundle"
+        if ($null -eq $SysInfo) {
+            $SysInfo = Get-rsSystemInfo
         }
     }
-    catch {
-        Throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
-        break
+
+    process {
+        try {
+            $RestMethodParameters = @{
+                Uri         = $WinGetUrl
+                Method      = "Get"
+                Headers     = $GithubHeaders
+                TimeoutSec  = 10
+                ErrorAction = "Stop"
+            }
+
+            if (-not [string]::IsNullOrWhiteSpace([string]$SysInfo.HTTPVersion)) {
+                $RestMethodParameters.HttpVersion = $SysInfo.HTTPVersion
+            }
+
+            [System.Object]$GithubInfoRestData = Invoke-RestMethod @RestMethodParameters | Select-Object -Property assets, tag_name
+            [string]$DownloadUrl = $GithubInfoRestData.assets |
+                Where-Object { $_.name -like "*.msixbundle" } |
+                Select-Object -ExpandProperty browser_download_url -First 1
+
+            if ([string]::IsNullOrWhiteSpace($DownloadUrl)) {
+                throw "Could not determine the latest WinGet download URL."
+            }
+
+            [System.Object]$GitHubInfo = [PSCustomObject]@{
+                Tag         = $GithubInfoRestData.tag_name.TrimStart("v")
+                DownloadUrl = $DownloadUrl
+                OutFile     = Join-Path -Path $env:TEMP -ChildPath "WinGet_$($GithubInfoRestData.tag_name.TrimStart("v")).msixbundle"
+            }
+        }
+        catch {
+            throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+        }
+
+        [version]$vWinGet = $SysInfo.Software.WinGet.Version
+        [version]$vGitHub = $GitHubInfo.Tag
+        if ($vWinGet -lt $vGitHub) {
+            try {
+                Write-Output "WinGet has a newer version $vGitHub, downloading and installing it..."
+                Write-Verbose "Downloading WinGet..."
+                Invoke-WebRequest -UseBasicParsing -Uri $GitHubInfo.DownloadUrl -OutFile $GitHubInfo.OutFile -ErrorAction Stop
+
+                Write-Verbose "Installing version $vGitHub of WinGet..."
+                Add-AppxPackage -Path $GitHubInfo.OutFile -ForceApplicationShutdown -ErrorAction Stop | Out-Null
+            }
+            catch {
+                throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+            }
+            finally {
+                if (Test-Path -Path $GitHubInfo.OutFile) {
+                    Write-Verbose "Deleting WinGet downloaded installation file..."
+                    Remove-Item -Path $GitHubInfo.OutFile -Force -ErrorAction SilentlyContinue
+                }
+            }
+        }
+        else {
+            Write-Verbose "You're already on the latest version of WinGet $vWinGet, no need to update."
+        }
     }
 
-    # Checking if the installed version of WinGet are the same as the latest version of WinGet
-    [version]$vWinGet = $SysInfo.Software.WinGet
-    [version]$vGitHub = $GitHubInfo.Tag
-    if ([Version]$vWinGet -lt [Version]$vGitHub) {
-        Write-Output "WinGet has a newer version $vGitHub, downloading and installing it..."
-        Write-Verbose "Downloading WinGet..."
-        Invoke-WebRequest -UseBasicParsing -Uri $GitHubInfo.DownloadUrl -OutFile $GitHubInfo.OutFile
-
-        Write-Verbose "Installing version $vGitHub of WinGet..."
-        [void](Add-AppxPackage $($GitHubInfo.OutFile) -ForceApplicationShutdown)
-        
-        Write-Verbose "Deleting WinGet downloaded installation file..."
-        [void](Remove-Item -Path $($GitHubInfo.OutFile) -Force)
-    }
-    else {
-        Write-Verbose "You're already on the latest version of WinGet $vWinGet, no need to update."
-        Continue
+    end {
     }
 }
 Function Get-rsSystemInfo {
@@ -162,40 +197,56 @@ Function Get-rsSystemInfo {
         GitHub:         https://github.com/rwidmark
     #>
 
-    # Getting architecture of the computer and adapting it after the right download links
-    [string]$Architecture = $(Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty SystemType)
-    
-    [string]$Arch = Switch ($Architecture) {
-        "x64-based PC" { "x64" }
-        "ARM64-based PC" { "arm64" }
-        "x86-based PC" { "x86" }
-        default { "Unsupported" }
+    [CmdletBinding()]
+    Param()
+
+    begin {
+        [hashtable]$ArchitectureMap = @{
+            "x64-based PC"   = "x64"
+            "ARM64-based PC" = "arm64"
+            "x86-based PC"   = "x86"
+        }
+        [string]$PwshPath = Join-Path -Path "C:\Program Files" -ChildPath "PowerShell\7" -AdditionalChildPath "pwsh.exe"
     }
 
-    if ($Arch -eq "Unsupported") {
-        Throw "Your running a unsupported architecture, exiting now..."
-        Break
-    }
-    else {
-        # Verify verifying what ps version that's running and checks if pwsh7 is installed
-        [version]$CurrentPSVersion = if ($PSVersionTable.PSVersion.Major -lt 7) {
-            $pwshPath = Join-Path -Path "C:\Program Files" -ChildPath "PowerShell\7" -AdditionalChildPath "pwsh.exe"
+    process {
+        try {
+            [string]$Architecture = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop | Select-Object -ExpandProperty SystemType
+        }
+        catch {
+            throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+        }
 
-            if (Test-Path -Path $pwshPath) {
-                (Get-Command "$($pwshPath)").Version
+        [string]$Arch = if ($ArchitectureMap.ContainsKey($Architecture)) {
+            $ArchitectureMap[$Architecture]
+        }
+        else {
+            "Unsupported"
+        }
+
+        if ($Arch -eq "Unsupported") {
+            throw "Your running a unsupported architecture, exiting now..."
+        }
+
+        try {
+            [version]$CurrentPSVersion = if ($PSVersionTable.PSVersion.Major -lt 7) {
+                if (Test-Path -Path $PwshPath) {
+                    (Get-Command $PwshPath -ErrorAction Stop).Version
+                }
+                else {
+                    $PSVersionTable.PSVersion
+                }
             }
             else {
                 $PSVersionTable.PSVersion
             }
+
+            $AppxPackages = Get-AppxPackage -AllUsers -ErrorAction Stop | Where-Object { $_.Architecture -eq $Arch }
         }
-        else {
-            $PSVersionTable.PSVersion
+        catch {
+            throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
         }
 
-        $AppxPackages = Get-AppxPackage -AllUsers | Where-Object { $_.Architecture -eq $Arch }
-
-        # Collects everything in pscustomobject to get easier access to the information
-        # Need to redothis to hashtable
         $SysInfo = [ordered]@{
             Software    = [ordered]@{
                 "Microsoft.VCLibs"  = [ordered]@{
@@ -215,8 +266,8 @@ Function Get-rsSystemInfo {
                 }
                 "vsRedist"          = [ordered]@{
                     Version  = ""
-                    Url      = "https://aka.ms/vs/17/release/vc_redist.$($Architecture).exe"
-                    FileName = "vc_redist.$($Architecture).exe"
+                    Url      = "https://aka.ms/vs/17/release/vc_redist.$($Arch).exe"
+                    FileName = "vc_redist.$($Arch).exe"
                 }
             }
             Arch        = $Arch
@@ -230,47 +281,55 @@ Function Get-rsSystemInfo {
 
         return $SysInfo
     }
+
+    end {
+    }
 }
 Function Confirm-rsDependency {
-    # Collecting systeminformation
-    $SysInfo = Get-rsSystemInfo
+    [CmdletBinding()]
+    Param()
 
-    # If any dependencies are missing it will install them
-    foreach ($_info in $SysInfo.Software.keys) {
-        if ($_info -notlike "WinGet") {
-            $Software = $SysInfo.Software.$_info
-            if ($null -eq $Software.version -or $Software.version -eq "0.0.0.0") {
+    begin {
+    }
+
+    process {
+        $SysInfo = Get-rsSystemInfo
+
+        foreach ($DependencyName in $SysInfo.Software.Keys | Where-Object { $_ -ne "WinGet" }) {
+            $Software = $SysInfo.Software[$DependencyName]
+            if ($null -eq $Software.Version -or $Software.Version -eq "0.0.0.0") {
+                [string]$DepOutFile = Join-Path -Path $SysInfo.Temp -ChildPath $Software.FileName
+
                 try {
-                    Write-Output "$($_info) is not installed, downloading and installing it now..."
-                    [string]$DepOutFile = Join-Path -Path $SysInfo.Temp -ChildPath $Software.FileName
-                    Write-Verbose "Downloading $($_info)..."
-                    Invoke-RestMethod -Uri $Software.url -OutFile $DepOutFile -HttpVersion $SysInfo.HTTPVersion
+                    Write-Output "$DependencyName is not installed, downloading and installing it now..."
+                    Write-Verbose "Downloading $DependencyName..."
+                    Invoke-RestMethod -Uri $Software.Url -OutFile $DepOutFile -HttpVersion $SysInfo.HTTPVersion -ErrorAction Stop
 
-                    Write-Verbose "Installing $($_info)..."
-                    [void](Add-AppxPackage -Path $DepOutFile)
-                    
-                    Write-Verbose "Deleting $($_info) downloaded installation file..."
-                    [void](Remove-Item -Path $DepOutFile -Force)
+                    Write-Verbose "Installing $DependencyName..."
+                    Add-AppxPackage -Path $DepOutFile -ErrorAction Stop | Out-Null
                 }
                 catch {
-                    Throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
-                    break
+                    throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+                }
+                finally {
+                    if (Test-Path -Path $DepOutFile) {
+                        Write-Verbose "Deleting $DependencyName downloaded installation file..."
+                        Remove-Item -Path $DepOutFile -Force -ErrorAction SilentlyContinue
+                    }
                 }
             }
         }
+
+        [version]$pwsh7 = "7.0.0.0"
+        if ($SysInfo.VersionPS -ge $pwsh7) {
+            Confirm-rsPowerShell7 -SysInfo $SysInfo
+        }
+
+        Confirm-RSWinGet -SysInfo $SysInfo
     }
 
-    # Install VisualCRedist
-    # To Install visualcredist use vc_redist.x64.exe /install /quiet /norestart
-
-    # If PowerShell 7 is installed on the system then it will check if it's the latest version and if not it will update it
-    [version]$pwsh7 = "7.0.0.0"
-    if ($SysInfo.VersionPS -ge $pwsh7) {
-        Confirm-rsPowerShell7 -SysInfo $SysInfo
+    end {
     }
-    
-    # If WinGet is not installed it will be installed and if it's any updates it will be updated
-    Confirm-RSWinGet -SysInfo $SysInfo
 }
 Function Confirm-rsPowerShell7 {
     <#
@@ -281,73 +340,92 @@ Function Confirm-rsPowerShell7 {
         .EXAMPLE
     #>
 
-    $MissingPWSH7 = $false
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $false)]
+        $SysInfo
+    )
 
-    [version]$CurrentVersion = if ($PSVersionTable.PSVersion.Major -lt 7) {
-        $CheckpwshVersion = Test-Path -Path "C:\Program Files\PowerShell\7\pwsh.exe"
-
-        if ($CheckpwshVersion -eq $true) {
-            (Get-Command "C:\Program Files\PowerShell\7\pwsh.exe").Version
-        }
-        else {
-            [version]$CurrentVersion = $PSVersionTable.PSVersion
-            $true
-        }
-    }
-    else {
-        $PSVersionTable.PSVersion
+    begin {
+        $MissingPWSH7 = $false
+        [version]$pwshV7 = "7.0.0.0"
+        [string]$PwshPath = Join-Path -Path "C:\Program Files" -ChildPath "PowerShell\7" -AdditionalChildPath "pwsh.exe"
     }
 
-    [version]$pwshV7 = "7.0.0.0"
-    if ($CurrentVersion -lt $pwshV7) {
-        $GetMetaData = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/PowerShell/PowerShell/master/tools/metadata.json"
-    }
-    else {
-        $GetMetaData = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/PowerShell/PowerShell/master/tools/metadata.json" -HttpVersion 3.0
-    }
-
-    [version]$Release = $GetMetaData.StableReleaseTag -replace '^v'
-    $PackageName = "PowerShell-${Release}-win-x64.msi"
-    $PackagePath = Join-Path -Path $env:TEMP -ChildPath $PackageName
-    $downloadURL = "https://github.com/PowerShell/PowerShell/releases/download/v${Release}/${PackageName}"
-
-    if ($CurrentVersion -lt $pwshV7) {
-        $MSIArguments = @()
-        $MSIArguments = @("/i", $packagePath, "/quiet")
-        $MSIArguments += "ADD_EXPLORER_CONTEXT_MENU_OPENPOWERSHELL=1"
-        $MSIArguments += "ENABLE_PSREMOTING=1"
-        $MSIArguments += "ADD_FILE_CONTEXT_MENU_RUNPOWERSHELL=1"
-        $MSIArguments += "REGISTER_MANIFEST=1"
-        $MSIArguments += "ADD_PATH=1"
-    }
-
-    # Check if powershell needs to update or not
-    if ($CurrentVersion -lt $Release) {
-        # Download latest MSI installer for PowerShell
-        Invoke-RestMethod -Uri $downloadURL -OutFile $PackagePath
-
-        # Setting arguments
-        if ($null -ne $MSIArguments) {
-            $ArgumentList = $MSIArguments
-        }
-        else {
-            $ArgumentList = @("/i", $packagePath, "/quiet")
-        }
-
-        $InstallProcess = Start-Process msiexec -ArgumentList $ArgumentList -Wait -PassThru
-        if ($InstallProcess.exitcode -ne 0) {
-            throw "Quiet install failed, please ensure you have administrator rights"
-        }
-        else {
-            if ($MissingPWSH7 -eq $true) {
-                Write-Output "PowerShell 7 was not installed on your system, PowerShell 7 have been installed and you need to restart PowerShell to use the new version"
-            } 
+    process {
+        try {
+            [version]$CurrentVersion = if ($PSVersionTable.PSVersion.Major -lt 7) {
+                if (Test-Path -Path $PwshPath) {
+                    (Get-Command $PwshPath -ErrorAction Stop).Version
+                }
+                else {
+                    $MissingPWSH7 = $true
+                    $PSVersionTable.PSVersion
+                }
+            }
             else {
-                Write-Output "PowerShell 7 have been updated from $($CurrentVersion) to $($Release), you need to restart PowerShell to use the new version"
+                $PSVersionTable.PSVersion
+            }
+
+            $MetadataParameters = @{
+                Uri         = "https://raw.githubusercontent.com/PowerShell/PowerShell/master/tools/metadata.json"
+                ErrorAction = "Stop"
+            }
+
+            if ($null -ne $SysInfo -and -not [string]::IsNullOrWhiteSpace([string]$SysInfo.HTTPVersion)) {
+                $MetadataParameters.HttpVersion = $SysInfo.HTTPVersion
+            }
+            elseif ($CurrentVersion -ge $pwshV7) {
+                $MetadataParameters.HttpVersion = "3.0"
+            }
+
+            $GetMetaData = Invoke-RestMethod @MetadataParameters
+            [version]$Release = $GetMetaData.StableReleaseTag -replace '^v'
+        }
+        catch {
+            throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+        }
+
+        $PackageName = "PowerShell-${Release}-win-x64.msi"
+        $PackagePath = Join-Path -Path $env:TEMP -ChildPath $PackageName
+        $downloadURL = "https://github.com/PowerShell/PowerShell/releases/download/v${Release}/${PackageName}"
+        $ArgumentList = @("/i", $PackagePath, "/quiet")
+
+        if ($CurrentVersion -lt $pwshV7) {
+            $ArgumentList += "ADD_EXPLORER_CONTEXT_MENU_OPENPOWERSHELL=1"
+            $ArgumentList += "ENABLE_PSREMOTING=1"
+            $ArgumentList += "ADD_FILE_CONTEXT_MENU_RUNPOWERSHELL=1"
+            $ArgumentList += "REGISTER_MANIFEST=1"
+            $ArgumentList += "ADD_PATH=1"
+        }
+
+        if ($CurrentVersion -lt $Release) {
+            try {
+                Invoke-RestMethod -Uri $downloadURL -OutFile $PackagePath -ErrorAction Stop
+                $InstallProcess = Start-Process -FilePath "msiexec.exe" -ArgumentList $ArgumentList -Wait -PassThru -ErrorAction Stop
+                if ($InstallProcess.ExitCode -ne 0) {
+                    throw "Quiet install failed, please ensure you have administrator rights"
+                }
+
+                if ($MissingPWSH7) {
+                    Write-Output "PowerShell 7 was not installed on your system, PowerShell 7 have been installed and you need to restart PowerShell to use the new version"
+                }
+                else {
+                    Write-Output "PowerShell 7 have been updated from $CurrentVersion to $Release, you need to restart PowerShell to use the new version"
+                }
+            }
+            catch {
+                throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+            }
+            finally {
+                if (Test-Path -Path $PackagePath) {
+                    Remove-Item -Path $PackagePath -Force -ErrorAction SilentlyContinue
+                }
             }
         }
-        # Removes the installation file
-        Remove-Item -Path $PackagePath -Force -ErrorAction SilentlyContinue
+    }
+
+    end {
     }
 }
 Function Update-rsWinSoftware {
@@ -379,44 +457,59 @@ Function Update-rsWinSoftware {
         GitHub:         https://github.com/rwidmark
     #>
 
-    #Check if script was started as Administrator
-    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")) {
-        Write-Error ("{0} needs admin privileges, exiting now...." -f $MyInvocation.MyCommand)
-        break
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
+    Param()
+
+    begin {
+        [bool]$IsAdministrator = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")
+        [string[]]$Arguments = @(
+            "upgrade"
+            "--all"
+            "--include-unknown"
+            "--accept-package-agreements"
+            "--accept-source-agreements"
+            "--uninstall-previous"
+            "--silent"
+        )
     }
 
-    # Importing appx with -usewindowspowershell if your using PowerShell 7 or higher
-    if ($PSVersionTable.PSVersion.Major -ge 7) {
-        Import-Module appx -UseWindowsPowershell
-        Write-Output "This messages is expected if you are using PowerShell 7 or higher and can be ignored`n"
+    process {
+        if (-not $IsAdministrator) {
+            Write-Error ("{0} needs admin privileges, exiting now...." -f $MyInvocation.MyCommand)
+            return
+        }
+
+        if (-not $PSCmdlet.ShouldProcess("Local computer", "Update installed software with WinGet")) {
+            return
+        }
+
+        try {
+            if ($PSVersionTable.PSVersion.Major -ge 7) {
+                Import-Module Appx -UseWindowsPowershell -ErrorAction Stop
+                Write-Output "This messages is expected if you are using PowerShell 7 or higher and can be ignored`n"
+            }
+
+            Confirm-RSDependency
+
+            Write-Output "Updating Wingets source list..."
+            $SourceUpdateProcess = Start-Process -FilePath "WinGet.exe" -ArgumentList "source update" -NoNewWindow -Wait -PassThru -ErrorAction Stop
+            if ($SourceUpdateProcess.ExitCode -ne 0) {
+                throw "WinGet source update failed with exit code $($SourceUpdateProcess.ExitCode)."
+            }
+
+            Write-Output "Checks if any softwares needs to be updated..."
+            $UpgradeProcess = Start-Process -FilePath "WinGet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru -ErrorAction Stop
+            if ($UpgradeProcess.ExitCode -ne 0) {
+                throw "WinGet upgrade failed with exit code $($UpgradeProcess.ExitCode)."
+            }
+        }
+        catch {
+            throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
+        }
+
+        Write-Output "FINISH - All of your programs have been updated!"
     }
 
-    # Register WinGet
-    # Add-AppxPackage -RegisterByFamilyName -MainPackage "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe"
-
-    # Check if something needs to be installed or updated
-    Confirm-RSDependency
-
-    # Checking if it's any softwares to update and if so it will update them
-    Write-Output "Updating Wingets source list..."
-    Start-Process -FilePath "WinGet.exe" -ArgumentList "source update" -NoNewWindow -Wait
-
-    Write-OutPut "Checks if any softwares needs to be updated..."
-    try {
-        $Arguments = @()
-        $Arguments += "upgrade"
-        $Arguments += "--all"
-        $Arguments += "--include-unknown"
-        $Arguments += "--accept-package-agreements"
-        $Arguments += "--accept-source-agreements"
-        $Arguments += "--uninstall-previous"
-        $Arguments += "--silent"
-
-        Start-Process -FilePath "WinGet.exe" -ArgumentList $Arguments -NoNewWindow -Wait
+    end {
     }
-    catch {
-        Throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
-    }
-
-    Write-OutPut "FINISH - All of your programs have been updated!"
 }
