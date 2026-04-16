@@ -399,9 +399,9 @@ function Confirm-rsPowerShell7 {
     }
 
     if ($SysInfo.IsWindows) {
-        $packageFileName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Architecture).msi"
-        $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $packageFileName
-        $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$packageFileName"
+        $fileName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Architecture).msi"
+        $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $fileName
+        $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$fileName"
         $argumentList = @('/i', $packagePath, '/quiet')
 
         if ($currentVersion -lt [version]'7.0.0') {
@@ -441,7 +441,7 @@ function Confirm-rsPowerShell7 {
             return
         }
 
-        # Homebrew is a native executable, so stream redirection is the most direct way to probe formula existence without noisy output.
+        # Suppress all output streams while checking whether the powershell formula is installed.
         & $brewPath list --formula powershell 1>$null 2>$null
         $formulaInstalled = $LASTEXITCODE -eq 0
         if (-not $formulaInstalled) {
@@ -587,7 +587,7 @@ function Update-rsWinSoftware {
         }
 
         if ($PSCmdlet.ShouldProcess('Installed software', 'Upgrade software with Homebrew')) {
-            # The --greedy flag also upgrades casks that normally skip updates because they can auto-update themselves.
+            # The --greedy flag also upgrades casks that normally skip updates because they have built-in auto-update mechanisms.
             Invoke-rsNativeCommand -FilePath $brewPath -ArgumentList @('upgrade', '--greedy') -OperationName 'brew upgrade'
         }
 
