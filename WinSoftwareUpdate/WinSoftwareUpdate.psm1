@@ -135,17 +135,18 @@ Function Confirm-rsWinGet {
                 throw "Could not determine the latest WinGet download URL."
             }
 
+            [string]$LatestWinGetTag = $GithubInfoRestData.tag_name -replace '^v'
             [System.Object]$GitHubInfo = [PSCustomObject]@{
-                Tag         = $GithubInfoRestData.tag_name.TrimStart("v")
+                Tag         = $LatestWinGetTag
                 DownloadUrl = $DownloadUrl
-                OutFile     = Join-Path -Path $env:TEMP -ChildPath "WinGet_$($GithubInfoRestData.tag_name.TrimStart("v")).msixbundle"
+                OutFile     = Join-Path -Path $env:TEMP -ChildPath "WinGet_${LatestWinGetTag}.msixbundle"
             }
         }
         catch {
             throw "Message: $($_.Exception.Message)`nError Line: $($_.InvocationInfo.Line)`n"
         }
 
-        [version]$WinGetVersion = $SysInfo.Software.WinGet.Version
+        [version]$WinGetVersion = $SysInfo.Software["WinGet"].Version
         [version]$GitHubVersion = $GitHubInfo.Tag
         if ($WinGetVersion -lt $GitHubVersion) {
             try {
@@ -225,7 +226,7 @@ Function Get-rsSystemInfo {
         }
 
         if ($Arch -eq "Unsupported") {
-            throw "You're running an unsupported architecture, exiting now..."
+            throw "Unsupported architecture detected."
         }
 
         try {
