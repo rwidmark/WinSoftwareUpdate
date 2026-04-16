@@ -39,7 +39,7 @@
     ModuleVersion     = '1.0.0'
 
     # Supported PSEditions
-    # CompatiblePSEditions = @()
+    CompatiblePSEditions = @('Desktop', 'Core')
 
     # ID used to uniquely identify this module
     GUID              = '4699dd6a-cc61-4929-97ed-11de5eb6bc01'
@@ -54,7 +54,7 @@
     Copyright         = '(c) 2025 Robin Widmark. All rights reserved.'
 
     # Description of the functionality provided by this module
-    Description       = 'This module will help you to update your software on your Windows 10 and Windows 11 machines.'
+    Description       = 'This module updates supported software on Windows with WinGet and on macOS with Homebrew.'
 
     # Minimum version of the PowerShell engine required by this module
     PowerShellVersion = '5.1'
@@ -93,13 +93,13 @@
     # NestedModules = @()
 
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-    FunctionsToExport = "Get-rsPowerShell7", "Update-RSWinSoftware", "Confirm-RSDependency", "Confirm-RSWinGet", "Get-RSSystemInfo"
+    FunctionsToExport = @('Confirm-rsDependency', 'Confirm-rsPowerShell7', 'Confirm-rsWinGet', 'Get-rsSystemInfo', 'Update-rsWinSoftware')
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
     CmdletsToExport   = @()
 
     # Variables to export from this module
-    VariablesToExport = '*'
+    VariablesToExport = @()
 
     # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
     AliasesToExport   = @()
@@ -119,7 +119,7 @@
         PSData = @{
 
             # Tags applied to this module. These help with module discovery in online galleries.
-            Tags                     = @("windows", "maintenance", "autoupdate", "autoupdate-script", "psmodule", "update", "winget", "windows10", "windows11")
+            Tags                     = @('windows', 'macos', 'maintenance', 'autoupdate', 'autoupdate-script', 'psmodule', 'update', 'winget', 'homebrew', 'windows10', 'windows11')
 
             # A URL to the license for this module.
             LicenseUri               = 'https://github.com/rwidmark/WinSoftwareUpdate/blob/main/LICENSE'
