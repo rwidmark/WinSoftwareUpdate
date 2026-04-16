@@ -411,7 +411,7 @@ Function Confirm-rsPowerShell7 {
                 Invoke-RestMethod -Uri $downloadURL -OutFile $PackagePath -ErrorAction Stop
                 $InstallProcess = Start-Process -FilePath "msiexec.exe" -ArgumentList $ArgumentList -Wait -PassThru -ErrorAction Stop
                 if ($InstallProcess.exitcode -ne 0) {
-                    throw "Quiet install failed, please ensure you have administrator rights"
+                    throw "Quiet install failed with exit code $($InstallProcess.exitcode), please ensure you have administrator rights"
                 }
 
                 if ($MissingPWSH7) {
