@@ -399,9 +399,9 @@ function Confirm-rsPowerShell7 {
     }
 
     if ($SysInfo.IsWindows) {
-        $msiFileName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Architecture).msi"
-        $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $msiFileName
-        $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$msiFileName"
+        $packageFileName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Architecture).msi"
+        $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $packageFileName
+        $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$packageFileName"
         $argumentList = @('/i', $packagePath, '/quiet')
 
         if ($currentVersion -lt [version]'7.0.0') {
@@ -441,6 +441,7 @@ function Confirm-rsPowerShell7 {
             return
         }
 
+        # Homebrew is a native executable, so stream redirection is the most direct way to probe formula existence without noisy output.
         & $brewPath list --formula powershell 1>$null 2>$null
         $formulaInstalled = $LASTEXITCODE -eq 0
         if (-not $formulaInstalled) {
@@ -497,10 +498,10 @@ function Confirm-rsDependency {
         }
 
         if ($SysInfo.VersionPS -ge [version]'7.0.0') {
-            Confirm-rsPowerShell7 -SysInfo $SysInfo -WhatIf:$WhatIfPreference
+            Confirm-rsPowerShell7 -SysInfo $SysInfo
         }
 
-        Confirm-rsWinGet -SysInfo $SysInfo -WhatIf:$WhatIfPreference
+        Confirm-rsWinGet -SysInfo $SysInfo
         return
     }
 
@@ -510,7 +511,7 @@ function Confirm-rsDependency {
         }
 
         Write-Verbose 'Homebrew is available on macOS.'
-        Confirm-rsPowerShell7 -SysInfo $SysInfo -WhatIf:$WhatIfPreference
+        Confirm-rsPowerShell7 -SysInfo $SysInfo
     }
 }
 
@@ -549,7 +550,7 @@ function Update-rsWinSoftware {
             throw 'Update-RSWinSoftware requires administrator rights on Windows.'
         }
 
-        Confirm-rsDependency -SysInfo $sysInfo -WhatIf:$WhatIfPreference
+        Confirm-rsDependency -SysInfo $sysInfo
 
         $wingetPath = Get-rsCommandPath -CommandName 'winget'
         if ([string]::IsNullOrWhiteSpace($wingetPath)) {
@@ -578,7 +579,7 @@ function Update-rsWinSoftware {
 
     if ($platform.IsMacOS) {
         $sysInfo = Get-rsSystemInfo
-        Confirm-rsDependency -SysInfo $sysInfo -WhatIf:$WhatIfPreference
+        Confirm-rsDependency -SysInfo $sysInfo
         $brewPath = $sysInfo.Software['Homebrew'].Path
 
         if ($PSCmdlet.ShouldProcess('Homebrew metadata', 'Refresh Homebrew formula and cask metadata')) {
