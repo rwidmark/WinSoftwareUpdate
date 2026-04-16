@@ -135,7 +135,7 @@ Function Confirm-rsWinGet {
         [void](Remove-Item -Path $($GitHubInfo.OutFile) -Force)
     }
     else {
-        Write-Verbose "Your already on the latest version of WinGet $vWinGet, no need to update."
+        Write-Verbose "You're already on the latest version of WinGet $vWinGet, no need to update."
         Continue
     }
 }
