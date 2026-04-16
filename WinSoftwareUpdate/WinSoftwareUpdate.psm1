@@ -51,7 +51,7 @@ function Get-rsPlatformInfo {
 
     $tempPath = [System.IO.Path]::GetTempPath()
     if ([string]::IsNullOrWhiteSpace($tempPath)) {
-        $tempPath = $env:TEMP
+        $tempPath = if ($IsMacOS -and -not [string]::IsNullOrWhiteSpace($env:TMPDIR)) { $env:TMPDIR } elseif (-not [string]::IsNullOrWhiteSpace($env:TEMP)) { $env:TEMP } else { '/tmp' }
     }
 
     [PSCustomObject]@{
@@ -97,7 +97,7 @@ function Invoke-rsNativeCommand {
     )
 
     Write-Verbose ("Running {0}: {1} {2}" -f $OperationName, $FilePath, ($ArgumentList -join ' '))
-    & $FilePath @ArgumentList
+    & $FilePath $ArgumentList
     if ($LASTEXITCODE -ne 0) {
         throw "{0} failed with exit code {1}." -f $OperationName, $LASTEXITCODE
     }
@@ -399,9 +399,9 @@ function Confirm-rsPowerShell7 {
     }
 
     if ($SysInfo.IsWindows) {
-        $fileName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Architecture).msi"
-        $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $fileName
-        $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$fileName"
+        $packageFileName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Architecture).msi"
+        $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $packageFileName
+        $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$packageFileName"
         $argumentList = @('/i', $packagePath, '/quiet')
 
         if ($currentVersion -lt [version]'7.0.0') {
@@ -547,7 +547,7 @@ function Update-rsWinSoftware {
         $sysInfo = Get-rsSystemInfo
         $isAdministrator = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
         if (-not $isAdministrator) {
-            throw 'Update-RSWinSoftware requires administrator rights on Windows.'
+            throw "$($MyInvocation.MyCommand.Name) requires administrator rights on Windows."
         }
 
         Confirm-rsDependency -SysInfo $sysInfo
