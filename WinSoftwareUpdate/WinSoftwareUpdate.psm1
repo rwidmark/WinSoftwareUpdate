@@ -214,7 +214,7 @@ function Get-rsSystemInfo {
         Platform    = $platform.PlatformName
         IsWindows   = $platform.IsWindows
         IsMacOS     = $platform.IsMacOS
-        Arch        = $platform.Architecture
+        Architecture = $platform.Architecture
         VersionPS   = [version]$PSVersionTable.PSVersion
         Temp        = $platform.Temp
         HTTPVersion = $platform.HTTPVersion
@@ -399,7 +399,7 @@ function Confirm-rsPowerShell7 {
     }
 
     if ($SysInfo.IsWindows) {
-        $msiFileName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Arch).msi"
+        $msiFileName = "PowerShell-$($releaseVersion)-win-$($SysInfo.Architecture).msi"
         $packagePath = Join-Path -Path $SysInfo.Temp -ChildPath $msiFileName
         $downloadUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($releaseVersion)/$msiFileName"
         $argumentList = @('/i', $packagePath, '/quiet')
